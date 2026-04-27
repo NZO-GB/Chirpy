@@ -4,11 +4,22 @@ import (
 	"net/http"
 )
 
+
+
 func main() {
+
+	apiCfg := apiConfig {
+	}
+
 	mux := http.NewServeMux()
 
 	fs := http.FileServer(http.Dir("./"))
-	mux.Handle("/app/", http.StripPrefix("/app/",  fs))
+	handlerFs := http.StripPrefix("/app/",  fs)
+
+	mux.Handle("/app/", apiCfg.middlewareMetricsInc(handlerFs))
+
+	mux.HandleFunc("/metrics", apiCfg.printHits)
+	mux.HandleFunc("/reset", apiCfg.resetHits)
 	
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
