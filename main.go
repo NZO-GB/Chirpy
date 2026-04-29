@@ -18,10 +18,10 @@ func main() {
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(handlerFs))
 
-	mux.HandleFunc("/metrics", apiCfg.printHits)
-	mux.HandleFunc("/reset", apiCfg.resetHits)
+	mux.HandleFunc("GET /api/metrics", apiCfg.printHits)
+	mux.HandleFunc("POST /api/reset", apiCfg.resetHits)
 	
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`OK`))
