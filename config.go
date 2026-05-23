@@ -25,6 +25,7 @@ func respondWithError(w http.ResponseWriter, err error) {
 
 func respondWithJSON(w http.ResponseWriter, json string) {
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(json))
 }
 
@@ -65,5 +66,5 @@ func (cfg *apiConfig) validateChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	
+
 }
