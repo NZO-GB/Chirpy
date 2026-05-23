@@ -18,8 +18,9 @@ func main() {
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(handlerFs))
 
-	mux.HandleFunc("GET /api/metrics", apiCfg.printHits)
-	mux.HandleFunc("POST /api/reset", apiCfg.resetHits)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.printHits)
+	mux.HandleFunc("POST /admin/reset", apiCfg.resetHits)
+	mux.HandleFunc("POST /api/validate_chirp", apiCfg.validateChirp)
 	
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
