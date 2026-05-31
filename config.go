@@ -5,28 +5,20 @@ import (
 	"net/http"
 	"fmt"
 	"encoding/json"
+	"Chirpy/internal/database"
 )
+
+
 
 type apiConfig struct {
 	fileserverHits	atomic.Int32
+	dbQueries		*database.Queries
 	}
 
-func respondWithError(w http.ResponseWriter, err error) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	msg := fmt.Sprintf(`<html>
-  <body>
-    <h1>An error has occured:</h1>
-    <p>%s</p>
-  </body>
-</html>`, err)
-	w.WriteHeader(http.StatusBadRequest)
-	w.Write([]byte(msg))
-}
-
-func respondWithJSON(w http.ResponseWriter, json string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(json))
+var censoringBank = []string{
+	"kerfuffle",
+	"sharbert",
+	"fornax",
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -56,15 +48,37 @@ func (cfg *apiConfig) resetHits(w http.ResponseWriter, _ *http.Request) {
 
 func (cfg *apiConfig) validateChirp(w http.ResponseWriter, r *http.Request) {
 
-	var body []byte
-	r.Body.Read(body)
+	type text struct {
+		Body string `json:"body"`
+	}
 
-	var text string
-	err := json.Unmarshal([]byte(body), &text)
-	if err != nil {
-		respondWithError(w, err)
+	decoder := json.NewDecoder(r.Body)
+	txt := text{}
+	err := decoder.Decode(&txt)
+	if err != nil{
+		respondWithError(w, http.StatusBadRequest, err)
 		return
 	}
+
+	chirpyText := txt.Body
+	
+	if len(txt.Body) > 140 {
+		err := fmt.Errorf("Chirpy is above 140 characters")
+		respondWithError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	chirpyText = censorWords(chirpyText, censoringBank)
+
+	type returnVals struct {
+		CleanedBody string `json:"cleaned_body"`
+	}
+
+	payload := returnVals{
+		CleanedBody: chirpyText,
+	}
+
+	respondWithJSON(w, 200, payload)
 
 
 }
