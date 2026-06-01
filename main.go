@@ -7,7 +7,16 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"os"
+	uuid "github.com/google/uuid"
+	"time"
 )
+
+type User struct {
+	Id 			uuid.UUID	`json:"id"`
+	Created_at  time.Time	`json:"created_at"`
+	Updated_at	time.Time	`json:"updated_at"`
+	Email 		string		`json:"email"`
+}
 
 
 
@@ -37,6 +46,7 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiCfg.printHits)
 	mux.HandleFunc("POST /admin/reset", apiCfg.resetHits)
 	mux.HandleFunc("POST /api/validate_chirp", apiCfg.validateChirp)
+	mux.HandleFunc("POST /api/users", apiCfg.returnUser)
 	
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")

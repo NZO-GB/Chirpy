@@ -4,7 +4,6 @@ import (
 	"sync/atomic"
 	"net/http"
 	"fmt"
-	"encoding/json"
 	"Chirpy/internal/database"
 )
 
@@ -52,17 +51,14 @@ func (cfg *apiConfig) validateChirp(w http.ResponseWriter, r *http.Request) {
 		Body string `json:"body"`
 	}
 
-	decoder := json.NewDecoder(r.Body)
-	txt := text{}
-	err := decoder.Decode(&txt)
-	if err != nil{
-		respondWithError(w, http.StatusBadRequest, err)
+	response, err := decodeResponse[text](w, r)
+	if err != nil {
 		return
 	}
 
-	chirpyText := txt.Body
+	chirpyText := response.Body
 	
-	if len(txt.Body) > 140 {
+	if len(chirpyText) > 140 {
 		err := fmt.Errorf("Chirpy is above 140 characters")
 		respondWithError(w, http.StatusBadRequest, err)
 		return
@@ -81,4 +77,14 @@ func (cfg *apiConfig) validateChirp(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, 200, payload)
 
 
+}
+
+func (cfg *apiConfig) returnUser(w http.ResponseWriter, r *http.Request) {
+
+	response, err := decodeResponse[User](w, r)
+	if err != nil {
+		return
+	}
+
+	respondWithJSON(w, 201, response)
 }
