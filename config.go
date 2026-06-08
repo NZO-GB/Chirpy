@@ -1,17 +1,19 @@
 package main
 
 import (
-	"sync/atomic"
-	"net/http"
+	db "Chirpy/internal/database"
+	"context"
 	"fmt"
-	"Chirpy/internal/database"
+	"net/http"
+	"sync/atomic"
 )
 
 
 
 type apiConfig struct {
 	fileserverHits	atomic.Int32
-	dbQueries		*database.Queries
+	dbQueries		*db.Queries
+	platform		string
 	}
 
 var censoringBank = []string{
@@ -39,26 +41,36 @@ func (cfg *apiConfig) printHits(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte(hits))
 }
 
-func (cfg *apiConfig) resetHits(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	cfg.fileserverHits.Store(0)
-	w.Write([]byte(`Server hits reset`))
-}
-
-func (cfg *apiConfig) validateChirp(w http.ResponseWriter, r *http.Request) {
-
-	type text struct {
-		Body string `json:"body"`
+func (cfg *apiConfig) resetServer(w http.ResponseWriter, _ *http.Request) {
+	if cfg.platform != "dev" {
+		err := fmt.Errorf("You're not an admin")
+		respondWithError(w, http.StatusForbidden, err)
 	}
 
-	response, err := decodeResponse[text](w, r)
+	err := cfg.dbQueries.Reset(context.Background())
 	if err != nil {
-		return
+		respondWithError(w, http.StatusBadRequest, err)
+	}
+
+	respondWithJSON(w, http.StatusOK, "")
+}
+
+func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
+
+	type chirpRequest struct {
+		Body 	string `json:"body"`
+		User_id	string `json:"user_id`
+	}
+
+	response, err := decodeResponse[chirpRequest](w, r)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err)
 	}
 
 	chirpyText := response.Body
-	
-	if len(chirpyText) > 140 {
+
+	const maxChirpLength = 140
+	if len(chirpyText) > maxChirpLength {
 		err := fmt.Errorf("Chirpy is above 140 characters")
 		respondWithError(w, http.StatusBadRequest, err)
 		return
@@ -66,25 +78,42 @@ func (cfg *apiConfig) validateChirp(w http.ResponseWriter, r *http.Request) {
 
 	chirpyText = censorWords(chirpyText, censoringBank)
 
-	type returnVals struct {
-		CleanedBody string `json:"cleaned_body"`
+	chirpParams := db.CreateChirpParams{
+		Body: chirpyText,
+		UserID: response.User_id,
 	}
 
-	payload := returnVals{
-		CleanedBody: chirpyText,
-	}
+	chirp, err := cfg.dbQueries.CreateChirp(context.Background(), chirpParams)
 
-	respondWithJSON(w, 200, payload)
+	respondWithJSON(w, http.StatusCreated, ChirpJSON{
+		ID:			chirp.ID,
+		Created_at: chirp.CreatedAt,
+		Updated_at: chirp.UpdatedAt,
+		Body: 		chirp.Body,
+		User_id: chirp.UserID,
 
+	})
 
 }
 
 func (cfg *apiConfig) returnUser(w http.ResponseWriter, r *http.Request) {
 
-	response, err := decodeResponse[User](w, r)
+	response, err := decodeResponse[UserJSON](w, r)
 	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	respondWithJSON(w, 201, response)
+	user, err := cfg.dbQueries.CreateUser(context.Background(), response.Email)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, UserJSON{
+    ID:        user.ID,
+    Created_at: user.CreatedAt,
+    Updated_at: user.UpdatedAt,
+    Email:     user.Email,
+})
 }

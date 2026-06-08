@@ -59,6 +59,7 @@ func decodeResponse[T any](w http.ResponseWriter, r *http.Request) (T, error) {
 	var v T
 
 	decoder := json.NewDecoder(r.Body)
+	
 	err := decoder.Decode(&v)
 	if err != nil{
 		respondWithError(w, http.StatusBadRequest, err)

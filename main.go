@@ -7,17 +7,8 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"os"
-	uuid "github.com/google/uuid"
-	"time"
+	"log"
 )
-
-type User struct {
-	Id 			uuid.UUID	`json:"id"`
-	Created_at  time.Time	`json:"created_at"`
-	Updated_at	time.Time	`json:"updated_at"`
-	Email 		string		`json:"email"`
-}
-
 
 
 func main() {
@@ -32,9 +23,15 @@ func main() {
 
 	dbQueries := database.New(db)
 
+	platform := os.Getenv("PLATFORM")
+	if platform == "" {
+		log.Fatal("PLATFORM must be set")
+	}
 	apiCfg := apiConfig {
 		dbQueries: dbQueries,
+		platform: platform,
 	}
+	
 
 	mux := http.NewServeMux()
 
@@ -44,8 +41,8 @@ func main() {
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(handlerFs))
 
 	mux.HandleFunc("GET /admin/metrics", apiCfg.printHits)
-	mux.HandleFunc("POST /admin/reset", apiCfg.resetHits)
-	mux.HandleFunc("POST /api/validate_chirp", apiCfg.validateChirp)
+	mux.HandleFunc("POST /admin/reset", apiCfg.resetServer)
+	mux.HandleFunc("POST /api/chirps", apiCfg.postChirp)
 	mux.HandleFunc("POST /api/users", apiCfg.returnUser)
 	
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
