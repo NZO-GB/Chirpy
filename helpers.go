@@ -52,7 +52,6 @@ func censorWords(text string, censoring []string) string {
 	}
 
 	return strings.Join(words, " ")
-	
 }
 
 func decodeResponse[T any](w http.ResponseWriter, r *http.Request) (T, error) {

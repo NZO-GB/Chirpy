@@ -47,24 +47,30 @@ func (cfg *apiConfig) resetServer(w http.ResponseWriter, _ *http.Request) {
 		respondWithError(w, http.StatusForbidden, err)
 	}
 
-	err := cfg.dbQueries.Reset(context.Background())
+	err := cfg.dbQueries.ResetChirps(context.Background())
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err)
 	}
 
-	respondWithJSON(w, http.StatusOK, "")
+	err = cfg.dbQueries.ResetUsers(context.Background())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err)
+	}
+
+	respondWithJSON(w, http.StatusOK, "Server has been reset")
 }
 
 func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 
 	type chirpRequest struct {
-		Body 	string `json:"body"`
-		User_id	string `json:"user_id`
+		Body 		string 		`json:"body"`
+		User_id		string 		`json:"user_id"`
 	}
 
 	response, err := decodeResponse[chirpRequest](w, r)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err)
+		return
 	}
 
 	chirpyText := response.Body
@@ -84,6 +90,10 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	chirp, err := cfg.dbQueries.CreateChirp(context.Background(), chirpParams)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
 
 	respondWithJSON(w, http.StatusCreated, ChirpJSON{
 		ID:			chirp.ID,
@@ -115,5 +125,30 @@ func (cfg *apiConfig) returnUser(w http.ResponseWriter, r *http.Request) {
     Created_at: user.CreatedAt,
     Updated_at: user.UpdatedAt,
     Email:     user.Email,
-})
+	})
+}
+
+func (cfg *apiConfig) returnChirps(w http.ResponseWriter, _ *http.Request) {
+
+
+	chirps, err := cfg.dbQueries.GetChirps(context.Background())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	cleanChirps := make([]ChirpJSON, len(chirps))
+
+	for i, chirp := range chirps {
+		cleanChirp := ChirpJSON{
+		ID:			chirp.ID,
+		Created_at: chirp.CreatedAt,
+		Updated_at: chirp.UpdatedAt,
+		Body: 		chirp.Body,
+		User_id: chirp.UserID,
+		}
+		cleanChirps[i] = cleanChirp
+	}
+
+	respondWithJSON(w, http.StatusOK, cleanChirps)
 }
