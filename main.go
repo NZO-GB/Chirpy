@@ -18,7 +18,7 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		return
+		log.Fatal("Couldn't open database")
 	}
 
 	dbQueries := database.New(db)
@@ -45,6 +45,7 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", apiCfg.postChirp)
 	mux.HandleFunc("POST /api/users", apiCfg.returnUser)
 	mux.HandleFunc("GET /api/chirps", apiCfg.returnChirps)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.returnOneChirp)
 	
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")

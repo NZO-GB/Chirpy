@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync/atomic"
+	uuid "github.com/google/uuid"
 )
 
 
@@ -45,17 +46,22 @@ func (cfg *apiConfig) resetServer(w http.ResponseWriter, _ *http.Request) {
 	if cfg.platform != "dev" {
 		err := fmt.Errorf("You're not an admin")
 		respondWithError(w, http.StatusForbidden, err)
+		return
 	}
 
 	err := cfg.dbQueries.ResetChirps(context.Background())
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err)
+		return
 	}
 
 	err = cfg.dbQueries.ResetUsers(context.Background())
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err)
+		return
 	}
+
+	cfg.fileserverHits.Store(0)
 
 	respondWithJSON(w, http.StatusOK, "Server has been reset")
 }
@@ -64,7 +70,7 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 
 	type chirpRequest struct {
 		Body 		string 		`json:"body"`
-		User_id		string 		`json:"user_id"`
+		User_id		uuid.UUID 		`json:"user_id"`
 	}
 
 	response, err := decodeResponse[chirpRequest](w, r)
@@ -130,7 +136,6 @@ func (cfg *apiConfig) returnUser(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) returnChirps(w http.ResponseWriter, _ *http.Request) {
 
-
 	chirps, err := cfg.dbQueries.GetChirps(context.Background())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err)
@@ -145,10 +150,37 @@ func (cfg *apiConfig) returnChirps(w http.ResponseWriter, _ *http.Request) {
 		Created_at: chirp.CreatedAt,
 		Updated_at: chirp.UpdatedAt,
 		Body: 		chirp.Body,
-		User_id: chirp.UserID,
+		User_id: 	chirp.UserID,
 		}
+
 		cleanChirps[i] = cleanChirp
 	}
 
 	respondWithJSON(w, http.StatusOK, cleanChirps)
+}
+
+func (cfg *apiConfig) returnOneChirp(w http.ResponseWriter, r *http.Request) {
+
+	idString := r.PathValue("chirpID")
+
+	id, err := uuid.Parse(idString)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, fmt.Errorf("Error parsing the uuid"))
+		return
+	}
+
+	chirp, err := cfg.dbQueries.GetOneChirp(context.Background(), id)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, fmt.Errorf("Error, chirp not in database"))
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ChirpJSON{
+		ID:			chirp.ID,
+		Created_at: chirp.CreatedAt,
+		Updated_at: chirp.UpdatedAt,
+		Body: 		chirp.Body,
+		User_id: chirp.UserID,
+	})
+
 }
