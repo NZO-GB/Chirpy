@@ -1,11 +1,14 @@
 package main
 
 import (
+	auth "Chirpy/internal/auth"
 	db "Chirpy/internal/database"
 	"context"
 	"fmt"
 	"net/http"
 	"sync/atomic"
+
+	"github.com/alexedwards/argon2id"
 	uuid "github.com/google/uuid"
 )
 
@@ -112,15 +115,26 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (cfg *apiConfig) returnUser(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 
-	response, err := decodeResponse[UserJSON](w, r)
+	response, err := decodeResponse[UserRequest](w, r)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	user, err := cfg.dbQueries.CreateUser(context.Background(), response.Email)
+	hashedPassword, err := auth.HashPassword(response.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err)
+	}
+
+	userParams := db.CreateUserParams{
+		Email: response.Email,
+		HashedPassword: hashedPassword,
+	}
+
+
+	user, err := cfg.dbQueries.CreateUser(context.Background(), userParams)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err)
 		return
@@ -182,5 +196,41 @@ func (cfg *apiConfig) returnOneChirp(w http.ResponseWriter, r *http.Request) {
 		Body: 		chirp.Body,
 		User_id: chirp.UserID,
 	})
+
+}
+
+func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
+
+	response, err := decodeResponse[UserRequest](w, r)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	user, err := cfg.dbQueries.ReturnUserByEmail(context.Background(), response.Email)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	match, err := argon2id.ComparePasswordAndHash(response.Password, user.HashedPassword)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if !match {
+		err = fmt.Errorf("Incorrect email or password")
+		respondWithError(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, UserJSON{
+			ID:        user.ID,
+			Created_at: user.CreatedAt,
+			Updated_at: user.UpdatedAt,
+			Email:     user.Email,
+			})
+
 
 }

@@ -43,9 +43,10 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiCfg.printHits)
 	mux.HandleFunc("POST /admin/reset", apiCfg.resetServer)
 	mux.HandleFunc("POST /api/chirps", apiCfg.postChirp)
-	mux.HandleFunc("POST /api/users", apiCfg.returnUser)
+	mux.HandleFunc("POST /api/users", apiCfg.createUser)
 	mux.HandleFunc("GET /api/chirps", apiCfg.returnChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.returnOneChirp)
+	mux.HandleFunc("POST /api/login", apiCfg.loginUser)
 	
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
