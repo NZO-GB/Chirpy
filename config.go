@@ -110,7 +110,6 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 		Updated_at: chirp.UpdatedAt,
 		Body: 		chirp.Body,
 		User_id: chirp.UserID,
-
 	})
 
 }
@@ -169,7 +168,6 @@ func (cfg *apiConfig) returnChirps(w http.ResponseWriter, _ *http.Request) {
 
 		cleanChirps[i] = cleanChirp
 	}
-
 	respondWithJSON(w, http.StatusOK, cleanChirps)
 }
 
@@ -196,7 +194,6 @@ func (cfg *apiConfig) returnOneChirp(w http.ResponseWriter, r *http.Request) {
 		Body: 		chirp.Body,
 		User_id: chirp.UserID,
 	})
-
 }
 
 func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
@@ -231,6 +228,4 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 			Updated_at: user.UpdatedAt,
 			Email:     user.Email,
 			})
-
-
 }
