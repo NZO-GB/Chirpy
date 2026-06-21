@@ -5,6 +5,9 @@ import (
 	uuid "github.com/google/uuid"
 	jwt "github.com/golang-jwt/jwt/v5"
 	"time"
+	"net/http"
+	"fmt"
+	"strings"
 )
 
 func HashPassword(password string) (string, error) {
@@ -64,4 +67,15 @@ func ValidateJWT(tokenString string, tokenSecret string) (uuid.UUID, error) {
 	}
 
 	return id, nil
+}
+
+func GetBearerToken(headers http.Header) (string, error) {
+
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return "", fmt.Errorf("No authorization header")
+	}
+	authHeaderSplit := strings.Split(authHeader, " ")
+
+	return authHeaderSplit[1], nil
 }

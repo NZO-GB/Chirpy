@@ -15,11 +15,13 @@ func main() {
 
 	godotenv.Load()
 
+	
 	dbURL := os.Getenv("DB_URL")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatal("Couldn't open database")
 	}
+	secret := os.Getenv("SECRET")
 
 	dbQueries := database.New(db)
 
@@ -30,6 +32,7 @@ func main() {
 	apiCfg := apiConfig {
 		dbQueries: dbQueries,
 		platform: platform,
+		secret: secret,
 	}
 	
 

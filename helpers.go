@@ -8,6 +8,11 @@ import(
 )
 
 const censor string = "****"
+var censoringBank = []string{
+"kerfuffle",
+"sharbert",
+"fornax",
+}
 
 func respondWithError(w http.ResponseWriter, code int, err error) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -54,6 +59,20 @@ func censorWords(text string, censoring []string) string {
 	return strings.Join(words, " ")
 }
 
+func validateChirp(chirpyText string) (string, error) {
+
+	const maxChirpLength = 140
+	if len(chirpyText) > maxChirpLength {
+		err := fmt.Errorf("Chirpy is above 140 characters")
+		return "", err
+	}
+
+	chirpyText = censorWords(chirpyText, censoringBank)
+
+	return chirpyText, nil
+}
+
+
 func decodeResponse[T any](w http.ResponseWriter, r *http.Request) (T, error) {
 	var v T
 
@@ -67,4 +86,4 @@ func decodeResponse[T any](w http.ResponseWriter, r *http.Request) (T, error) {
 
 	return v, nil
 }
-	
+

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync/atomic"
-
+	"time"
 	"github.com/alexedwards/argon2id"
 	uuid "github.com/google/uuid"
 )
@@ -18,13 +18,8 @@ type apiConfig struct {
 	fileserverHits	atomic.Int32
 	dbQueries		*db.Queries
 	platform		string
+	secret			string
 	}
-
-var censoringBank = []string{
-	"kerfuffle",
-	"sharbert",
-	"fornax",
-}
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -71,32 +66,38 @@ func (cfg *apiConfig) resetServer(w http.ResponseWriter, _ *http.Request) {
 
 func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 
-	type chirpRequest struct {
-		Body 		string 		`json:"body"`
-		User_id		uuid.UUID 		`json:"user_id"`
-	}
+    type chirpRequest struct {
+        Body string `json:"body"`
+    }
 
-	response, err := decodeResponse[chirpRequest](w, r)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err)
-		return
-	}
+    tokenString, err := auth.GetBearerToken(r.Header)
+    if err != nil {
+        respondWithError(w, http.StatusUnauthorized, err)
+        return
+    }
 
-	chirpyText := response.Body
+    userID, err := auth.ValidateJWT(tokenString, cfg.secret)
+    if err != nil {
+        respondWithError(w, http.StatusUnauthorized, err)
+        return
+    }
 
-	const maxChirpLength = 140
-	if len(chirpyText) > maxChirpLength {
-		err := fmt.Errorf("Chirpy is above 140 characters")
-		respondWithError(w, http.StatusBadRequest, err)
-		return
-	}
+    response, err := decodeResponse[chirpRequest](w, r)
+    if err != nil {
+        respondWithError(w, http.StatusBadRequest, err)
+        return
+    }
 
-	chirpyText = censorWords(chirpyText, censoringBank)
+    chirpyText, err := validateChirp(response.Body)
+    if err != nil {
+        respondWithError(w, http.StatusBadRequest, err)
+        return
+    }
 
-	chirpParams := db.CreateChirpParams{
-		Body: chirpyText,
-		UserID: response.User_id,
-	}
+    chirpParams := db.CreateChirpParams{
+        Body:   chirpyText,
+        UserID: userID, // from the token, not the request body
+    }
 
 	chirp, err := cfg.dbQueries.CreateChirp(context.Background(), chirpParams)
 	if err != nil {
@@ -111,7 +112,6 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 		Body: 		chirp.Body,
 		User_id: chirp.UserID,
 	})
-
 }
 
 func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
@@ -222,10 +222,23 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	expiresIn := time.Hour
+
+	if response.Expires_seconds > 0 && response.Expires_seconds < 3600 {
+		expiresIn = time.Duration(response.Expires_seconds) * time.Second
+	} 
+
+	token, err := auth.MakeJWT(user.ID, cfg.secret, expiresIn)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, err)
+		return 
+	}
+
 	respondWithJSON(w, http.StatusOK, UserJSON{
-			ID:        user.ID,
+			ID:			user.ID,
 			Created_at: user.CreatedAt,
 			Updated_at: user.UpdatedAt,
-			Email:     user.Email,
+			Email:		user.Email,
+			Token:		token,
 			})
 }
