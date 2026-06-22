@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"fmt"
 	"strings"
+	"crypto/rand"
+	"encoding/hex"
 )
 
 func HashPassword(password string) (string, error) {
@@ -78,4 +80,16 @@ func GetBearerToken(headers http.Header) (string, error) {
 	authHeaderSplit := strings.Split(authHeader, " ")
 
 	return authHeaderSplit[1], nil
+}
+
+func MakeRefreshToken() string {
+
+	key := make([]byte, 32)
+	bytes, err := rand.Read(key)
+	if err != nil || bytes != 32 {
+		panic(err)
+	}
+	stringKey := hex.EncodeToString(key)
+
+	return stringKey
 }

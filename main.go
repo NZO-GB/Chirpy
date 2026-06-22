@@ -50,6 +50,8 @@ func main() {
 	mux.HandleFunc("GET /api/chirps", apiCfg.returnChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.returnOneChirp)
 	mux.HandleFunc("POST /api/login", apiCfg.loginUser)
+	mux.HandleFunc("POST /api/login/", apiCfg.issueRefreshToken)
+	mux.HandleFunc("POST /api/refresh", apiCfg.revokeRefreshToken)
 	
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
