@@ -65,20 +65,48 @@ func (q *Queries) GetUserFromRefreshToken(ctx context.Context, token string) (uu
 const retrieveToken = `-- name: RetrieveToken :one
 
 SELECT
+    token,
     expires_at,
-    revoked_at
+    revoked_at,
+    user_id
 FROM refresh_tokens
 WHERE token = $1
 `
 
 type RetrieveTokenRow struct {
+	Token     string
 	ExpiresAt time.Time
 	RevokedAt sql.NullTime
+	UserID    uuid.UUID
 }
 
 func (q *Queries) RetrieveToken(ctx context.Context, token string) (RetrieveTokenRow, error) {
 	row := q.db.QueryRowContext(ctx, retrieveToken, token)
 	var i RetrieveTokenRow
-	err := row.Scan(&i.ExpiresAt, &i.RevokedAt)
+	err := row.Scan(
+		&i.Token,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+		&i.UserID,
+	)
 	return i, err
+}
+
+const revokeToken = `-- name: RevokeToken :exec
+
+UPDATE refresh_tokens
+SET 
+    revoked_at = $2,
+    updated_at = $2
+WHERE user_id = $1
+`
+
+type RevokeTokenParams struct {
+	UserID    uuid.UUID
+	RevokedAt sql.NullTime
+}
+
+func (q *Queries) RevokeToken(ctx context.Context, arg RevokeTokenParams) error {
+	_, err := q.db.ExecContext(ctx, revokeToken, arg.UserID, arg.RevokedAt)
+	return err
 }

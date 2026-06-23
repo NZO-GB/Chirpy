@@ -17,13 +17,15 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 
     tokenString, err := auth.GetBearerToken(r.Header)
     if err != nil {
-        respondWithError(w, http.StatusUnauthorized, err)
+		errReply := fmt.Errorf("Error getting bearing token: %v", err)
+        respondWithError(w, http.StatusUnauthorized, errReply)
         return
     }
 
     userID, err := auth.ValidateJWT(tokenString, cfg.secret)
     if err != nil {
-        respondWithError(w, http.StatusUnauthorized, err)
+		errReply := fmt.Errorf("Error validating jwt: %v. The jwt being validated was: %v", err, tokenString)
+        respondWithError(w, http.StatusUnauthorized, errReply)
         return
     }
 
@@ -41,7 +43,7 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 
     chirpParams := db.CreateChirpParams{
         Body:   chirpyText,
-        UserID: userID, // from the token, not the request body
+        UserID: userID, 
     }
 
 	chirp, err := cfg.dbQueries.CreateChirp(context.Background(), chirpParams)

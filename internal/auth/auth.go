@@ -28,10 +28,10 @@ func CheckPasswordHash(password, hash string) (bool, error) {
 	return match, nil
 }
 
-func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
+func MakeJWT(userID uuid.UUID, tokenSecret string) (string, error) {
 
 	jwtTimeNow := jwt.NewNumericDate(time.Now())
-	jwtTimeExpire := jwt.NewNumericDate(time.Now().Add(expiresIn))
+	jwtTimeExpire := jwt.NewNumericDate(time.Now().Add(time.Hour))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
 		Issuer:		"chirpy-access",

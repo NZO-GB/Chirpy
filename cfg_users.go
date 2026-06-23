@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 	"github.com/alexedwards/argon2id"
 )
 
@@ -69,31 +68,36 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expiresIn := time.Hour
-
-	token, err := auth.MakeJWT(user.ID, cfg.secret, expiresIn)
+	token, err := auth.MakeJWT(user.ID, cfg.secret)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err)
 		return 
 	}
 
 	refreshToken := auth.MakeRefreshToken()
-	expiresAt :=time.Now().Add(time.Hour * 24 * 60) 
+	expiresAt := getExpirationTime()
 
 	createTokenArgs := db.CreateTokenParams{
-		Token:		token,
+		Token:		refreshToken,
 		UserID:		user.ID,
 		ExpiresAt:	expiresAt,
 	}
 
-	cfg.dbQueries.CreateToken(context.Background(), createTokenArgs)
+	_, err = cfg.dbQueries.CreateToken(context.Background(), createTokenArgs)
+	if err != nil {
+		errReply := fmt.Errorf("Error retrieving user from refresh token: %v", err)
+		respondWithError(w, http.StatusInternalServerError, errReply)
+		return
+	}
 
-	respondWithJSON(w, http.StatusOK, UserJSON{
+	payload := UserJSON{
 			ID:				user.ID,
 			Created_at: 	user.CreatedAt,
 			Updated_at: 	user.UpdatedAt,
 			Email:			user.Email,
 			Token:			token,
 			Refresh_Token:	refreshToken,
-			})
+			}
+
+	respondWithJSON(w, http.StatusOK, payload)
 }

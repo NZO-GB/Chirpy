@@ -18,6 +18,16 @@ func (q *Queries) ResetChirps(ctx context.Context) error {
 	return err
 }
 
+const resetTokens = `-- name: ResetTokens :exec
+
+DELETE FROM refresh_tokens
+`
+
+func (q *Queries) ResetTokens(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, resetTokens)
+	return err
+}
+
 const resetUsers = `-- name: ResetUsers :exec
 
 DELETE FROM users

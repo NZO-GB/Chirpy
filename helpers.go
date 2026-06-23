@@ -1,10 +1,11 @@
 package main
 
-import(
-	"net/http"
+import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
+	"time"
 )
 
 const censor string = "****"
@@ -87,3 +88,6 @@ func decodeResponse[T any](w http.ResponseWriter, r *http.Request) (T, error) {
 	return v, nil
 }
 
+func getExpirationTime() time.Time {
+	return time.Now().Add(time.Hour * 24 * 60) 
+}
