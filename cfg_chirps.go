@@ -11,10 +11,6 @@ import (
 
 func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 
-    type chirpRequest struct {
-        Body string `json:"body"`
-    }
-
     tokenString, err := auth.GetBearerToken(r.Header)
     if err != nil {
 		errReply := fmt.Errorf("Error getting bearing token: %v", err)
@@ -27,6 +23,10 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 		errReply := fmt.Errorf("Error validating jwt: %v. The jwt being validated was: %v", err, tokenString)
         respondWithError(w, http.StatusUnauthorized, errReply)
         return
+    }
+
+	type chirpRequest struct {
+        Body string `json:"body"`
     }
 
     response, err := decodeResponse[chirpRequest](w, r)

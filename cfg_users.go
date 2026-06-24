@@ -20,6 +20,7 @@ func (cfg *apiConfig) createUser(w http.ResponseWriter, r *http.Request) {
 	hashedPassword, err := auth.HashPassword(response.Password)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	userParams := db.CreateUserParams{
@@ -100,4 +101,58 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 			}
 
 	respondWithJSON(w, http.StatusOK, payload)
+}
+
+func (cfg *apiConfig) changePassword(w http.ResponseWriter, r *http.Request) {
+
+    tokenString, err := auth.GetBearerToken(r.Header)
+    if err != nil {
+		errReply := fmt.Errorf("Error getting bearing token: %v", err)
+        respondWithError(w, http.StatusUnauthorized, errReply)
+        return
+    }
+
+	userID, err := auth.ValidateJWT(tokenString, cfg.secret)
+    if err != nil {
+		errReply := fmt.Errorf("Error validating jwt: %v. The jwt being validated was: %v", err, tokenString)
+        respondWithError(w, http.StatusUnauthorized, errReply)
+        return
+    }
+
+	response, err := decodeResponse[UserRequest](w, r)
+	if err != nil {
+		errReply := fmt.Errorf("Error decoding response: %v", err,)
+		respondWithError(w, http.StatusInternalServerError, errReply)
+		return
+	}
+
+	hashedPassword, err := auth.HashPassword(response.Password)
+	if err != nil {
+		errReply := fmt.Errorf("Error hashing password: %v", err,)
+		respondWithError(w, http.StatusInternalServerError, errReply)
+		return
+	}
+
+	params := db.UpdateUserPasswordParams {
+		ID:					userID,
+		HashedPassword: 	hashedPassword,
+		Email:				response.Email,
+	}
+
+	user, err := cfg.dbQueries.UpdateUserPassword(context.Background(), params)
+	if err != nil {
+		errReply := fmt.Errorf("Error updating password: %v", err,)
+		respondWithError(w, http.StatusInternalServerError, errReply)
+		return
+	}
+
+	payload := UserJSON{
+			ID:				user.ID,
+			Created_at: 	user.CreatedAt,
+			Updated_at: 	user.UpdatedAt,
+			Email:			user.Email,
+			}
+
+	respondWithJSON(w, http.StatusOK, payload)
+	
 }
