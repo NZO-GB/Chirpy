@@ -109,3 +109,49 @@ func (cfg *apiConfig) returnOneChirp(w http.ResponseWriter, r *http.Request) {
 		User_id: chirp.UserID,
 	})
 }
+
+func (cfg *apiConfig) deleteChirp(w http.ResponseWriter, r *http.Request) {
+
+	tokenString, err := auth.GetBearerToken(r.Header)
+    if err != nil {
+		errReply := fmt.Errorf("Error getting bearing token: %v", err)
+        respondWithError(w, http.StatusUnauthorized, errReply)
+        return
+    }
+
+    userID, err := auth.ValidateJWT(tokenString, cfg.secret)
+    if err != nil {
+		errReply := fmt.Errorf("Error validating jwt: %v. The jwt being validated was: %v", err, tokenString)
+        respondWithError(w, http.StatusUnauthorized, errReply)
+        return
+    }
+
+	idString := r.PathValue("chirpID")
+
+	chirpID, err := uuid.Parse(idString)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, fmt.Errorf("Error parsing the uuid"))
+		return
+	}
+
+	chirp, err := cfg.dbQueries.GetOneChirp(context.Background(), chirpID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, fmt.Errorf("Error, chirp not in database"))
+		return
+	}
+
+	if chirp.UserID != userID {
+		errReply := fmt.Errorf("You are not the author of the chirp: %v", err)
+        respondWithError(w, http.StatusForbidden, errReply)
+        return
+	}
+
+	err = cfg.dbQueries.DeleteOneChirp(context.Background(), chirpID)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, fmt.Errorf("Error, chirp not in database"))
+		return
+	}
+
+	respondWithJSON(w, http.StatusNoContent, nil)
+	
+}

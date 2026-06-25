@@ -154,5 +154,4 @@ func (cfg *apiConfig) changePassword(w http.ResponseWriter, r *http.Request) {
 			}
 
 	respondWithJSON(w, http.StatusOK, payload)
-	
 }
