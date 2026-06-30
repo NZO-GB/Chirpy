@@ -98,6 +98,7 @@ func (cfg *apiConfig) loginUser(w http.ResponseWriter, r *http.Request) {
 			Email:			user.Email,
 			Token:			token,
 			Refresh_Token:	refreshToken,
+			Is_Chirpy_Red: 	user.IsChirpyRed.Bool,
 			}
 
 	respondWithJSON(w, http.StatusOK, payload)
@@ -151,7 +152,45 @@ func (cfg *apiConfig) changePassword(w http.ResponseWriter, r *http.Request) {
 			Created_at: 	user.CreatedAt,
 			Updated_at: 	user.UpdatedAt,
 			Email:			user.Email,
+			Is_Chirpy_Red: 	user.IsChirpyRed.Bool,
 			}
 
 	respondWithJSON(w, http.StatusOK, payload)
+}
+
+func (cfg *apiConfig) upgradeChirpyRed(w http.ResponseWriter, r *http.Request) {
+
+	apiKey, err := auth.GetAPIKey(r.Header)
+    if err != nil {
+		errReply := fmt.Errorf("Error getting bearing token: %v", err)
+        respondWithError(w, http.StatusUnauthorized, errReply)
+        return
+    }
+
+	if apiKey != cfg.polkaKey {
+		errReply := fmt.Errorf("Wrong API Key")
+        respondWithError(w, http.StatusUnauthorized, errReply)
+        return
+	}
+
+	response, err := decodeResponse[ChirpyRedJSON](w, r)
+	if err != nil {
+		errReply := fmt.Errorf("Error decoding response: %v", err,)
+		respondWithError(w, http.StatusInternalServerError, errReply)
+		return
+	}
+
+	if response.Event != "user.upgraded" {
+		respondWithJSON(w, http.StatusNoContent, "")
+		return
+	}
+
+	err = cfg.dbQueries.UpgradeToChirpyRed(context.Background(), response.Data.User_ID)
+	if err != nil {
+		errReply := fmt.Errorf("Error updating to chirpy red: %v", err)
+		respondWithError(w, http.StatusNotFound, errReply)
+		return
+	}
+	
+	respondWithJSON(w, http.StatusNoContent, "")
 }

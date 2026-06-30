@@ -21,7 +21,9 @@ func main() {
 	if err != nil {
 		log.Fatal("Couldn't open database")
 	}
+
 	secret := os.Getenv("SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	dbQueries := database.New(db)
 
@@ -33,6 +35,7 @@ func main() {
 		dbQueries: dbQueries,
 		platform: platform,
 		secret: secret,
+		polkaKey: polkaKey,
 	}
 	
 
@@ -54,6 +57,7 @@ func main() {
 	mux.HandleFunc("POST /api/revoke", apiCfg.revokeRefreshToken)
 	mux.HandleFunc("PUT /api/users", apiCfg.changePassword)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.deleteChirp)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.upgradeChirpyRed)
 	
 	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")

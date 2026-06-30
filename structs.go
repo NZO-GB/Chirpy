@@ -13,6 +13,7 @@ type apiConfig struct {
 	dbQueries		*db.Queries
 	platform		string
 	secret			string
+	polkaKey		string
 	}
 
 
@@ -29,6 +30,7 @@ type UserJSON struct {
 	Password			string			`json:"password"`
 	Token				string			`json:"token"`
 	Refresh_Token		string			`json:"refresh_token"`
+	Is_Chirpy_Red		bool			`json:"is_chirpy_red"`
 }
 
 type ChirpJSON struct {
@@ -37,4 +39,13 @@ type ChirpJSON struct {
 	Updated_at			time.Time		`json:"updated_at"`
 	Body 				string			`json:"body"`
 	User_id				uuid.UUID		`json:"user_id"`
-}	
+}
+
+type DataJSON struct {
+	User_ID				uuid.UUID		`json:"user_id"`
+}
+
+type ChirpyRedJSON struct {
+	Event				string			`json:"event"`
+	Data				DataJSON 		`json:"data"`
+}

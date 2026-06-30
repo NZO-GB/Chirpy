@@ -81,8 +81,8 @@ func decodeResponse[T any](w http.ResponseWriter, r *http.Request) (T, error) {
 	
 	err := decoder.Decode(&v)
 	if err != nil{
-		respondWithError(w, http.StatusBadRequest, err)
-		return v, err
+		errReply := fmt.Errorf("Error decoding response: %v", err,)
+		return v, errReply
 	}
 
 	return v, nil
