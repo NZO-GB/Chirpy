@@ -1,8 +1,12 @@
-Chirpy
+# Chirpy
 
-A Twitter-inspired REST API written in Go.
+> A Twitter-inspired REST API built with Go, PostgreSQL, and JWT authentication.
 
-Chirpy is a backend service that implements the core functionality of a social media platform: user registration, authentication, posting short messages ("chirps"), and account management. The project was built to explore backend development in Go while following common REST API design patterns and modern authentication practices.
+Chirpy is a backend service that implements the core functionality of a microblogging platform. Users can register accounts, authenticate securely, create and manage short posts ("chirps"), and maintain persistent sessions using JWT access tokens and refresh tokens.
+
+The project showcases modern Go backend development using handwritten SQL with sqlc, PostgreSQL, Goose migrations, Argon2id password hashing, and RESTful API design.
+
+
 
 Features
 User registration and authentication
@@ -28,6 +32,8 @@ Argon2id	Password hashing
 JWT	Authentication
 godotenv	Environment variable management
 Project Structure
+
+```text
 .
 ├── internal/
 │   └── database/      # sqlc-generated database layer
@@ -37,20 +43,27 @@ Project Structure
 ├── main.go
 ├── go.mod
 └── README.md
-Configuration
+```
+## Configuration
 
-Create a .env file in the project root.
+Create a `.env` file in the project root.
 
+```env
 DB_URL=postgres://username:password@localhost:5432/chirpy?sslmode=disable
 SECRET=your_jwt_secret
 POLKA_KEY=your_polka_webhook_key
 PLATFORM=dev
-Environment Variables
-Variable	Description
-DB_URL	PostgreSQL connection string
-SECRET	Secret used to sign JWTs
-POLKA_KEY	API key used to validate Polka webhook requests
-PLATFORM	Application environment (for example dev)
+```
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DB_URL` | PostgreSQL connection string |
+| `SECRET` | Secret used to sign JWTs |
+| `POLKA_KEY` | API key used to validate Polka webhook requests |
+| `PLATFORM` | Application environment (for example `dev`) |
+
 Running the Project
 1. Clone the repository
 git clone <repository-url>
