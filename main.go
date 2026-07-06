@@ -44,7 +44,7 @@ func main() {
 	fs := http.FileServer(http.Dir("./"))
 	handlerFs := http.StripPrefix("/app/",  fs)
 
-	mux.Handle("/app/", apiCfg.middlewareMetricsInc(handlerFs))
+	mux.Handle("/admin/", apiCfg.middlewareMetricsInc(handlerFs))
 
 	mux.HandleFunc("GET /admin/metrics", apiCfg.printHits)
 	mux.HandleFunc("POST /admin/reset", apiCfg.resetServer)

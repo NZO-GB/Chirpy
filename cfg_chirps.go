@@ -61,9 +61,23 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (cfg *apiConfig) returnChirps(w http.ResponseWriter, _ *http.Request) {
+func (cfg *apiConfig) returnChirps(w http.ResponseWriter, r *http.Request) {
 
-	chirps, err := cfg.dbQueries.GetChirps(context.Background())
+	s := r.URL.Query().Get("author_id")
+
+	var chirps []db.Chirp
+	var err error
+
+	if s != "" {
+		id, err := uuid.Parse(s)
+		if err != nil {
+			respondWithError(w, http.StatusNotFound, fmt.Errorf("Error parsing the uuid"))
+			return
+		}
+		chirps, err = cfg.dbQueries.GetChirpsByAuthor(context.Background(), id)
+	} else {
+		chirps, err = cfg.dbQueries.GetChirps(context.Background())
+	}
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, err)
 		return
