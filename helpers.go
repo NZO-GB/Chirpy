@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	db "Chirpy/internal/database"
+	"sort"
 )
 
 const censor string = "****"
@@ -61,7 +63,6 @@ func censorWords(text string, censoring []string) string {
 }
 
 func validateChirp(chirpyText string) (string, error) {
-
 	const maxChirpLength = 140
 	if len(chirpyText) > maxChirpLength {
 		err := fmt.Errorf("Chirpy is above 140 characters")
@@ -90,4 +91,13 @@ func decodeResponse[T any](w http.ResponseWriter, r *http.Request) (T, error) {
 
 func getExpirationTime() time.Time {
 	return time.Now().Add(time.Hour * 24 * 60) 
+}
+
+func sortChirps(chirps []db.Chirp, sorting string) []db.Chirp {
+	if sorting == "desc" {
+		sort.Slice(chirps, func(i, j int) bool { return chirps[i].CreatedAt.After(chirps[j].CreatedAt) })
+	} else {
+		sort.Slice(chirps, func(i, j int) bool { return chirps[i].CreatedAt.Before(chirps[j].CreatedAt) })
+	}
+	return chirps
 }

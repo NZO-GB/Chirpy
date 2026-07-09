@@ -63,13 +63,23 @@ func (cfg *apiConfig) postChirp(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) returnChirps(w http.ResponseWriter, r *http.Request) {
 
-	s := r.URL.Query().Get("author_id")
+	author := r.URL.Query().Get("author_id")
+	sorting := r.URL.Query().Get("sort")
+
+	if sorting == "" || sorting == "asc" {
+		sorting = "asc"
+	} else if sorting == "desc" {
+		sorting = "desc"
+	} else {
+		respondWithError(w, http.StatusBadRequest, fmt.Errorf("Malformed sort request"))
+		return 
+	}
 
 	var chirps []db.Chirp
 	var err error
 
-	if s != "" {
-		id, err := uuid.Parse(s)
+	if author != "" {
+		id, err := uuid.Parse(author)
 		if err != nil {
 			respondWithError(w, http.StatusNotFound, fmt.Errorf("Error parsing the uuid"))
 			return
@@ -82,6 +92,8 @@ func (cfg *apiConfig) returnChirps(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, err)
 		return
 	}
+
+	chirps = sortChirps(chirps, sorting)
 
 	cleanChirps := make([]ChirpJSON, len(chirps))
 
